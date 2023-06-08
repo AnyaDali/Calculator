@@ -8,11 +8,12 @@ Widget::Widget(QWidget *parent)
     layout(std::make_unique<QGridLayout>()),
     statusBar(std::make_unique<QStatusBar>()),
     infoNumber(std::make_unique<QLabel>("0")),
-    infoSign(std::make_unique<QLabel>()), isFloat(false),
+    infoSign(std::make_unique<QLabel>()), isFloat(false), isPositive(true),
     regNum(""), memory(),
-    ui(new Ui::Widget)
+    ui(new Ui::Calculator)
 {
     ui->setupUi(this);
+    setWindowTitle("Calculator");
     setMaximumSize(300, 400);
 
     setMinimumSize(470, 400);
@@ -119,9 +120,9 @@ QPushButton* Widget::createButtonUnaryOp(const QString& name) {
 
 void Widget::PushNumber() {
     if (!regNum.isEmpty()) { // поместить число в стек
-        stackCalc.emplace(std::move(regNum), infoSign->text() == "-" ? typeStack::NEG_NUM : typeStack::POS_NUM);
-        infoSign->setText("");
+        stackCalc.emplace(std::move(regNum), !isPositive ? typeStack::NEG_NUM : typeStack::POS_NUM);
         regNum = "";
+        isPositive = true;
         isFloat = false;
     }
 }
@@ -144,6 +145,7 @@ void Widget::slotButtonUnaryOpClicked() {
             infoNumber->setText("Неверный ввод");
             regNum = "0";
             isFloat = false;
+            isPositive = true;
             infoSign->setText("");
             while (!stackCalc.empty()) {
                 stackCalc.pop();
@@ -158,6 +160,7 @@ void Widget::slotButtonUnaryOpClicked() {
             infoNumber->setText("Деление на ноль невозможно");
             regNum = "";
             isFloat = false;
+            isPositive = true;
             infoSign->setText("");
             while (!stackCalc.empty()) {
                 stackCalc.pop();
@@ -169,7 +172,6 @@ void Widget::slotButtonUnaryOpClicked() {
     }
     infoNumber->setText(stackCalc.top().first);
     infoSign->setText(stackCalc.top().second == typeStack::NEG_NUM ? "-" : "");
-
 }
 
 void Widget::slotButtonNumClicked() {
@@ -178,6 +180,12 @@ void Widget::slotButtonNumClicked() {
         while(!stackCalc.empty()) { // очистить стек
             stackCalc.pop();
         }
+    }
+
+    if (!isPositive) {
+        infoSign->setText("-");
+    } else {
+        infoSign->setText("");
     }
 
     if (pcmd->text() != "+-" && pcmd->text() != ".") {
@@ -193,9 +201,14 @@ void Widget::slotButtonNumClicked() {
         }
         regNum += pcmd->text();
     } else if (pcmd->text() == "+-") {
-        if (infoSign->text() == "-") {
+        if (regNum.isEmpty()) {
+            regNum = "0";
+        }
+        if (!isPositive) {
+            isPositive = true;
             infoSign->setText(QString{});
         } else {
+            isPositive = false;
             infoSign->setText("-");
         }
     }
@@ -324,13 +337,20 @@ void Widget::slotButtonMRClicked() {
         infoNumber->setText(memory.first);
         infoSign->setText(memory.second ? "" : "-");
         regNum = memory.first;
+        isPositive = memory.second ? true : false;
+        double val = regNum.toDouble();
+        if (std::abs(std::modf(val, nullptr)) < EPS) {
+            isFloat = false;
+        } else {
+            isFloat = true;
+        }
     }
 }
 
 // запомнить число на дисплее
 void Widget::slotButtonMSClicked() {
     memory = std::make_pair(infoNumber->text(), infoSign->text() == "-" ? false : true);
-    qDebug() << memory.first;
+    qDebug() << (memory.second ? "+" : "-") << memory.first;
 }
 
 void Widget::slotButtonMplusClicked() {
@@ -349,12 +369,15 @@ void Widget::slotButtonMplusClicked() {
         x += y;
         memory = std::make_pair(QString::number(std::abs(x)), x < 0 ? false : true);
     }
+    qDebug() << (memory.second ? "+" : "-") << memory.first;
 }
 
 void Widget::slotButtonClearClicked() {
     infoNumber->setText("0");
     infoSign->setText("");
-    regNum = "";
+    isPositive = true;
+    isFloat = false;
+    regNum = "0";
 }
 
 void Widget::slotButtonClearAllClicked() {
@@ -363,11 +386,16 @@ void Widget::slotButtonClearAllClicked() {
     }
     infoNumber->setText("0");
     infoSign->setText("");
-    regNum = "";
+    isPositive = true;
+    isFloat = false;
+    regNum = "0";
 }
 
 void Widget::slotButtonBackSpace() {
     if (regNum != "0") {
+        if(regNum.back() == '.') {
+            isFloat = false;
+        }
         regNum.remove(regNum.size() - 1, regNum.size());
         if (regNum.isEmpty()) {
             regNum = "0";

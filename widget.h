@@ -15,7 +15,7 @@
 #include <functional>
 #include <iostream>
 QT_BEGIN_NAMESPACE
-namespace Ui { class Widget; }
+namespace Ui { class Calculator; }
 QT_END_NAMESPACE
 
 class Widget : public QWidget
@@ -30,15 +30,15 @@ class Widget : public QWidget
     std::unique_ptr<QLabel> infoNumber;
     std::unique_ptr<QLabel> infoSign;
     bool isFloat;
+    bool isPositive;
     std::stack<std::pair<QString, typeStack>> stackCalc;
     QString regNum;
     std::pair<QString, bool> memory;
-
 public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
 private:
-    Ui::Widget *ui;
+    Ui::Calculator *ui;
 
     QPushButton* createButtonNum(const QString &); //
     QPushButton* createButtonOp(const QString& ); //
